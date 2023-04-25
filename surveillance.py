@@ -5,17 +5,21 @@ from picamera2 import Picamera2
 
 # email stuff -------------------------------------------------
 import smtplib, ssl
-port = 465  #default port
+from email.message import EmailMessage
 last_email_sent = time.time()
 email_send_rate = 300
 
 email_to = "sberna@colostate.edu"  #change this to your email
 email_from = "cs370groupemail@gmail.com"
-email_password = "cs370emailpassword"
+email_password = "xeawrfrwpbgyqpxs"
 
-email_message = """\
-Subject: Security Alert
-The camera has registered someone at your door."""
+email_body = "Camera detected a body at your door, view the video on your desktop"
+em = EmailMessage()
+em['From'] = email_from
+em['To'] = email_to
+em['Subject'] = "Camera Alert"
+em.set_content(email_body)
+context = ssl.create_default_context()
 # -------------------------------------------------------------
 
 # Configure Camera
@@ -27,7 +31,6 @@ piCam.preview_configuration.align()
 piCam.configure("preview")
 piCam.start() # Start camera
 
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml") # Add facial detection
 body_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fullbody.xml") # Add full body detection
 
 detection = False
@@ -45,10 +48,9 @@ fourcc = cv2.VideoWriter_fourcc(*"mp4v")
 while True:
     frame = piCam.capture_array() # Grab frame
     
-    gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Convert image to grayscale
-    bodies = face_cascade.detectMultiScale(gray, 1.3, 5)
-    
     if (counter >= RATE_TO_CHECK_DETECTION):
+        gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Convert image to grayscale
+        bodies = face_cascade.detectMultiScale(gray, 1.3, 5)
         counter = 0
     else:
         counter += 1
@@ -70,10 +72,9 @@ while True:
                 print("Stopped recording.")
                 #Send email when video stops --------------------------------------------------
                 if ((time.time() - last_email_sent) > email_send_rate):
-                    context = ssl.create_default_context()
                     with smtplib.SMTP_SSL("smpt.gmail.com", port, context=context) as server:
                         server.login(email_from, email_password)
-                        server.sendmail(email_from, email_to, email_message)
+                        server.sendmail(email_from, email_to, em.as_string())
                     last_email_sent = time.time()
                 # ------------------------------------------------------------------------------
             else:
