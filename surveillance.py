@@ -15,7 +15,6 @@ email_password = "cs370emailpassword"
 
 email_message = """\
 Subject: Security Alert
-
 The camera has registered someone at your door."""
 # -------------------------------------------------------------
 
@@ -28,6 +27,7 @@ piCam.preview_configuration.align()
 piCam.configure("preview")
 piCam.start() # Start camera
 
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml") # Add facial detection
 body_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fullbody.xml") # Add full body detection
 
 detection = False
@@ -45,9 +45,10 @@ fourcc = cv2.VideoWriter_fourcc(*"mp4v")
 while True:
     frame = piCam.capture_array() # Grab frame
     
+    gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Convert image to grayscale
+    bodies = face_cascade.detectMultiScale(gray, 1.3, 5)
+    
     if (counter >= RATE_TO_CHECK_DETECTION):
-        gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Convert image to grayscale
-        bodies = face_cascade.detectMultiScale(gray, 1.3, 5)
         counter = 0
     else:
         counter += 1
@@ -76,8 +77,8 @@ while True:
                     last_email_sent = time.time()
                 # ------------------------------------------------------------------------------
             else:
-            timer_started = True
-            detection_stopped_time = time.time()
+                timer_started = True
+                detection_stopped_time = time.time()
     
     if detection:    
         out.write(frame) # Write frame to video if face or body is in frame
@@ -90,5 +91,4 @@ while True:
     if cv2.waitKey(1) == ord('q'): # Press q to terminate
         break
 
-out.release()
 cv2.destroyAllWindows()
